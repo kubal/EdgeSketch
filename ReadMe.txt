@@ -1,9 +1,8 @@
 ## Project structure
 
 - `src/` - source modules (EdgeSketch, NodeSketch, GraphModels, etc.)
-- `experiments/` - test and experiment functions (`_Tests.jl`)
-- `plots/` - output directory for figures (created by experiment functions)
-- `data/` - data directory
+- `experiments/` - test and experiment functions
+- `plots/` - output directory for generated figures 
 - `LoadModules.jl` - script to load all modules
 
 ## Instruction to run tests
@@ -14,30 +13,25 @@
 2. **Go to the project directory**:
    - Open a terminal and navigate to the directory containing the project files.
 
-3. **Load project modules**:
-   - **Standard Loading**:
-     - Start Julia and load the project modules using the following command:
-       ```sh
-       julia -i LoadModules.jl
-       ```
-     - This command starts Julia interactively with the `LoadModules.jl` script, loading all necessary project modules.
-
-   - **Multithreaded Loading**:
-     - For improved performance, when working with large datasets, start Julia with a specified number of threads:
-       ```sh
-       julia -t XXX -i LoadModules.jl
-       ```
-     - Replace `XXX` with the number of threads you want to use.
+3. **Load project modules** by running the following command:
+   ```sh
+   julia -t XXX -i LoadModules.jl
+   ```
+   where `XXX` is the number of threads to use.
 
 4. **Run test functions**:
-   - Once the modules are loaded, you can run the test functions from the `_Tests` module (located in `experiments/_Tests.jl`).
+   - Once the modules are loaded, you can run the test functions from the `experiments/_Tests.jl`.
      For example, in the Julia REPL, execute:
      ```julia
      test_graph_reconstruction()
      ```
 
 5. **Run experiment functions**:
-   - Once the modules are loaded, you can run the functions that implement the experiments from the paper (in the `_Tests` module located in `experiments/_Tests.jl`).
+   - Once the modules are loaded, you can run the experiment functions from the `experiments/_Experiments.jl`.
+     For example, in the Julia REPL, execute:
+     ```julia
+     experiment_graph_reconstruction()
+     ```
 
 
      
