@@ -26,7 +26,8 @@ export experiment_Louvain_dynamic_graphs
 export experiment_graph_reconstruction
 
 
-# --- Tests modularity estimator accuracy across varying sketch sizes
+# --- Tests modularity estimator accuracy across varying sketch sizes 
+# --- (Figure 1b in the paper)
 function experiment_Louvain_estimator()
     Random.seed!(123)
     
@@ -153,6 +154,7 @@ end
 
 
 # --- Tests Louvain algorithm on sketches with varying sketch sizes
+# --- (Figures 1a and 1c in the paper)
 function experiment_Louvain_varying_m()
     Random.seed!(123)
     
@@ -305,7 +307,8 @@ function experiment_Louvain_varying_m()
 end
 
 
-# --- Tests Louvain on dynamically growing graphs using streaming edge batches ---
+# --- Tests Louvain on dynamically growing graphs using streaming edge batches
+# --- (Figure 1d in the paper) 
 function experiment_Louvain_dynamic_graphs()
     Random.seed!(1234)
     
@@ -461,6 +464,7 @@ end
 
 
 # --- Compares EdgeSketch and NodeSketch precision for graph reconstruction
+# --- (Figures 2a and 2b in the paper) 
 function experiment_graph_reconstruction()
     Random.seed!(123)
     
