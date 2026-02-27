@@ -34,8 +34,8 @@ function ensure_package_installed(pkg::String)
 end
 
 
-# ensure that packeges are installed
-packages = ["Random", "Revise", "Distributions", "StatsBase", "Printf", "Plots", "PGFPlotsX", "Dates", "StatsPlots", "LaTeXStrings"]
+# ensure that packages are installed
+packages = ["Random", "Revise", "Distributions", "StatsBase", "Printf", "Plots", "PGFPlotsX", "Dates", "StatsPlots", "LaTeXStrings", "SparseArrays"]
 
 for pkg in packages
     ensure_package_installed(pkg)
@@ -55,12 +55,12 @@ using _GraphModels
 using _EdgeSketch
 using _NodeSketch
 using _SketchOperations
-using _kEmbeddings
 using _GraphReconstruction
 using _GraphModularity
 using _SketchModularity
 using _Tests
 using _Experiments
+using _Epinions
 
 
 

@@ -13,34 +13,21 @@ using _GraphModels
 using _EdgeSketch
 using _NodeSketch
 using _SketchOperations
-using _kEmbeddings
 using _GraphReconstruction
 using _GraphModularity
 using _SketchModularity
 using _Logger
 
-export test_sketch_construction
-export test_sketch_operations
-export test_graph_reconstruction
-export test_louvain_on_sketches
+export run_tests
 
 
 
 # --- Tests sketch construction, degree estimation accuracy, and memory usage
-function test_sketch_construction(sketch_size::Int = 20)
+function test_sketch_construction(adj_list::Vector{Vector{Tuple{Int, Float64}}}, name::String = "CUSTOM GRAPH"; sketch_size::Int = 100)
     Random.seed!(123)
 
-
-    # --- Graph generation ---
-    name = "STOCHASTIC BLOCK MODEL"
-    nr_nodes = 10000
-    nr_blocks = 10
-    p = 0.5
-    q = 0.05
-    use_weights = true
-    remove_isolated = true
-    return_communities = false
-    adj_list = generate_stochastic_block_graph(nr_nodes, nr_blocks, p, q, use_weights, remove_isolated, return_communities)
+    # --- Graph statistics ---
+    nr_nodes = length(adj_list)
     nr_edges = Int(sum(length(neighbors) for neighbors in adj_list) / 2)
     adj_list_size_mb = Base.summarysize(adj_list) / 1e6
 
@@ -64,8 +51,6 @@ function test_sketch_construction(sketch_size::Int = 20)
     # --- Print results ---
     emph("\nGRAPH")
     info(" - name            $(name)")
-    info(" - parameters      p = $(p), q = $(q)")
-    info(" - use_weights     $(use_weights)")
     info(" - nr_nodes        $(nr_nodes)")
     info(" - nr_edges        $(nr_edges)")
     info(" - adjList_memory  $(f4(adj_list_size_mb)) MB")
@@ -86,67 +71,19 @@ function test_sketch_construction(sketch_size::Int = 20)
     xlabel!(plt, "Groups")
     ylabel!(plt, "Values")
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-
-    savefig("plots/plot_$(timestamp)_$(nr_nodes)_$(nr_blocks)_$(p)_$(q)_degrees.pdf")
+    plot_path = "plots/plot_$(timestamp)_$(nr_nodes)_degrees.pdf"
+    savefig(plot_path)
+    info(" - saved to        $(plot_path)")
 end
 
-
-# --- Tests sketch operations: union, section, and Jaccard similarity
-function test_sketch_operations(sketch_size::Int = 100)
-
-    # --- Graph generation ---
-    name = "ERDOS RENYI MODEL"
-    nr_nodes = 4
-    p = 1.0
-    use_weights = false
-    remove_isolated = true
-    adj_list = generate_erdos_renyi_graph(nr_nodes, p, use_weights, remove_isolated)
-    nr_edges = Int(sum(length(neighbors) for neighbors in adj_list) / 2)
-
-
-    # --- EdgeSketch generation ---
-    graph_sketch = create_graph_sketch(adj_list, sketch_size)
-    s1 = graph_sketch[1]
-    s2 = graph_sketch[2]
-
-
-    # --- Sketch operations ---
-    union_weight = weight(sketch_union(s1, s2))
-    jacc_weight = sketch_jacc(s1, s2)
-    section_weight = sketch_section(s1, s2)
-
-
-    # --- Print results ---
-    emph("\nGRAPH")
-    info(" - name            $(name)")
-    info(" - p               $(p)")
-    info(" - use_weights     $(use_weights)")
-    info(" - nr_nodes        $(nr_nodes)")
-    info(" - nr_edges        $(nr_edges)")
-
-    emph("\nSKETCH OPERATIONS ON NODES 1 and 2")
-    info(" - union           $(f4(union_weight))")
-    info(" - section         $(f4(section_weight))")
-    info(" - jaccard         $(f4(jacc_weight))")
-end
 
 
 # --- Tests graph reconstruction using EdgeSketch and NodeSketch similarity matrices
-function test_graph_reconstruction(sketch_size::Int = 30)
+function test_graph_reconstruction(adj_list::Vector{Vector{Tuple{Int, Float64}}}, name::String = "CUSTOM GRAPH"; sketch_size::Int = 30)
     Random.seed!(123)
 
-
-    # --- Graph generation ---
-    name = "STOCHASTIC BLOCK MODEL"
-    nr_nodes = 2000
-    nr_blocks = 10
-    p = 0.5
-    q = 0.05
-    parameters = "p = $(p), q = $(q)"
-    use_weights = true
-    remove_isolated = true
-    return_communities = false
-    adj_list = generate_stochastic_block_graph(nr_nodes, nr_blocks, p, q, use_weights, remove_isolated, return_communities)
+    # --- Graph statistics ---
+    nr_nodes = length(adj_list)
     nr_edges = Int(sum(length(neighbors) for neighbors in adj_list) / 2)
     adj_list_size_mb = Base.summarysize(adj_list) / 1e6
 
@@ -178,8 +115,6 @@ function test_graph_reconstruction(sketch_size::Int = 30)
     # --- Print results ---
     emph("\nGRAPH")
     info(" - name                  $(name)")
-    info(" - parameters            $(parameters)")
-    info(" - use_weights           $(use_weights)")
     info(" - nr_nodes              $(nr_nodes)")
     info(" - nr_edges              $(nr_edges)")
     info(" - adj_list_memory       $(f4(adj_list_size_mb)) MB")
@@ -217,21 +152,18 @@ end
 
 
 # --- Tests Louvain community detection algorithm on sketches
-function test_louvain_on_sketches(sketch_size::Int = 100)
-    Random.seed!(4233)
+function test_louvain_on_sketches(
+        adj_list::Vector{Vector{Tuple{Int, Float64}}},
+        name::String = "CUSTOM GRAPH";
+        true_communities::Union{Vector{Int}, Nothing} = nothing,
+        sketch_size::Int = 100,
+        run_louvain_adj_list::Bool = false
+    )
+    Random.seed!(999)
 
-
-    # --- Graph generation ---
-    name = "STOCHASTIC BLOCK MODEL"
-    nr_nodes = 10000
-    nr_blocks = 10
-    p = 0.5
-    q = 0.05
-    parameters = "p = $(p), q = $(q)"
-    use_weights = true
-    remove_isolated = true
-    return_communities = true
-    t_g = @elapsed adj_list, blocks = generate_stochastic_block_graph(nr_nodes, nr_blocks, p, q, use_weights, remove_isolated, return_communities)
+    # --- Graph statistics ---
+    nr_nodes = length(adj_list)
+    nr_edges = Int(sum(length(neighbors) for neighbors in adj_list) / 2)
 
 
     # --- EdgeSketch generation ---
@@ -239,49 +171,130 @@ function test_louvain_on_sketches(sketch_size::Int = 100)
     graph_sketch_verification = create_graph_sketch(adj_list, sketch_size, 445)
     memory_size_adj_list_mb = Base.summarysize(adj_list) / 1e6
     memory_size_sketched_graph_mb = Base.summarysize(graph_sketch) / 1e6
-    nr_edges = Int(sum(length(neighbors) for neighbors in adj_list) / 2)
-    nr_nodes = length(adj_list)
 
 
-    # --- Louvain on sketches ---
+    # --- Louvain on sketches (best of two phases) ---
     t1 = @elapsed communities_1st_phase_sketch = louvain_method_sketch(graph_sketch)
     obtained_modularity_1 = calculate_modularity(adj_list, communities_1st_phase_sketch)
     estimated_modularity_1 = calculate_modularity_sketch(graph_sketch_verification, communities_1st_phase_sketch)
     t2 = @elapsed communities_2nd_phase_sketch = louvain_method_2nd_phase_sketch(graph_sketch, communities_1st_phase_sketch)
     obtained_modularity_2 = calculate_modularity(adj_list, communities_2nd_phase_sketch)
     estimated_modularity_2 = calculate_modularity_sketch(graph_sketch_verification, communities_2nd_phase_sketch)
-    best_obtained, best_estimated = estimated_modularity_1 > estimated_modularity_2 ?
-        (obtained_modularity_1, estimated_modularity_1) : (obtained_modularity_2, estimated_modularity_2)
+    best_obtained, best_estimated, best_communities_sketch = estimated_modularity_1 > estimated_modularity_2 ?
+        (obtained_modularity_1, estimated_modularity_1, communities_1st_phase_sketch) : 
+        (obtained_modularity_2, estimated_modularity_2, communities_2nd_phase_sketch)
 
 
+    # --- Louvain on adjacency list (reference) ---
+    t_al_1, t_al_2, modularity_AL_2, communities_AL_2 = 0.0, 0.0, 0.0, Vector{Set{Int}}()
+    if run_louvain_adj_list
+        println("Running Louvain on adjacency list...")
+        t_al_1 = @elapsed communities_AL_1 = louvain_method(adj_list)
+        modularity_AL_1 = calculate_modularity(adj_list, communities_AL_1)
+        println("Louvain AL phase 1: $(round(t_al_1, digits=2)) sec, modularity: $(round(modularity_AL_1, digits=4))")
+        
+        t_al_2 = @elapsed communities_AL_2 = louvain_method_2nd_phase(adj_list, communities_AL_1)
+        modularity_AL_2 = calculate_modularity(adj_list, communities_AL_2)
+        println("Louvain AL phase 2: $(round(t_al_2, digits=2)) sec, modularity: $(round(modularity_AL_2, digits=4))")
+    end
+
+    
     # --- Print results ---
     emph("\nGRAPH")
     info(" - name                 $(name)")
-    info(" - parameters           $(parameters)")
-    info(" - use_weights          $(use_weights)")
     info(" - nr_nodes             $(nr_nodes)")
     info(" - nr_edges             $(nr_edges)")
-    if @isdefined(blocks)
-        info(" - nr_blocks            $(nr_blocks)")
-    end
-    info(" - generating_time      $(f2(t_g)) sec")
     emph("\nSKETCH")
     info(" - sketch_size          $(sketch_size)")
     info(" - sketching_time       $(f2(t_s)) sec")
     info(" - memory (adj_matrix)  $(nr_nodes^2 * 8 / 1e6)  MB")
     info(" - memory (adj_list)    $(greene(f4(memory_size_adj_list_mb)*" MB"))")
-    info(" - memory (sketch)      $(greene(f4(memory_size_sketched_graph_mb)*" MB")) ")
+    info(" - memory (EdgeSketch)  $(greene(f4(memory_size_sketched_graph_mb)*" MB")) ")
 
     # knowledge based modularity (if known)
     emph("\nMODULARITY")
-    if name == "STOCHASTIC BLOCK MODEL"
-        communities = blocks_to_communities(blocks)
+    if true_communities !== nothing
+        communities = blocks_to_communities(true_communities)
         modularity = calculate_modularity(adj_list, communities)
         info(" - knowledge_based         $(f4(modularity))")
     end
-    info("\n - Louvain on sketches         $(greene(f2(t1+t2)*" sec"))")
+    if run_louvain_adj_list
+        info("")
+        info(" - Louvain on adj_list         $(greene(f2(t_al_1+t_al_2)*" sec"))")
+        info("   modularity                  $(f4(modularity_AL_2))")
+        info("   clusters                    $(length(communities_AL_2))")
+    end
+    info("")
+    info(" - Louvain on sketches         $(greene(f2(t1+t2)*" sec"))")
     info("   obtained modularity         $(f4(best_obtained))")
     info("   estimated modularity        $(f4(best_estimated))")
+    info("   clusters                    $(length(best_communities_sketch))")
+end
+
+
+# --- Run all tests with default graphs ---
+function run_tests(;
+    run_sketch_construction::Bool = true,
+    run_graph_reconstruction::Bool = true,
+    run_louvain::Bool = true
+)
+    # --- Test 1: Sketch Construction (SBM graph, 10000 nodes) ---
+    if run_sketch_construction
+        emph("\n" * "="^60)
+        emph("TEST: SKETCH CONSTRUCTION")
+        emph("="^60)
+        Random.seed!(123)
+        adj_list_1 = generate_stochastic_block_graph(
+            10000,  # nr_nodes
+            10,     # nr_blocks
+            0.5,    # p
+            0.05,   # q
+            true,   # use_weights
+            true,   # remove_isolated
+            false   # return_communities
+        )
+        test_sketch_construction(adj_list_1, "STOCHASTIC BLOCK MODEL (n=10000, k=10, p=0.5, q=0.05)"; sketch_size=20)
+    end
+
+    # --- Test 2: Graph Reconstruction (SBM graph, 2000 nodes) ---
+    if run_graph_reconstruction
+        emph("\n" * "="^60)
+        emph("TEST: GRAPH RECONSTRUCTION")
+        emph("="^60)
+        Random.seed!(123)
+        adj_list_2 = generate_stochastic_block_graph(
+            2000,   # nr_nodes
+            10,     # nr_blocks
+            0.5,    # p
+            0.05,   # q
+            true,   # use_weights
+            true,   # remove_isolated
+            false   # return_communities
+        )
+        test_graph_reconstruction(adj_list_2, "STOCHASTIC BLOCK MODEL (n=2000, k=10, p=0.5, q=0.05)"; sketch_size=30)
+    end
+
+    # --- Test 3: Louvain on Sketches (SBM graph, 10000 nodes, with blocks) ---
+    if run_louvain
+        emph("\n" * "="^60)
+        emph("TEST: LOUVAIN ON SKETCHES")
+        emph("="^60)
+        Random.seed!(1)
+        adj_list_3, true_communities_4 = generate_stochastic_block_graph(
+            10000,  # nr_nodes
+            10,     # nr_blocks
+            0.5,    # p
+            0.05,   # q
+            true,   # use_weights
+            true,   # remove_isolated
+            true    # return_communities
+        )
+        test_louvain_on_sketches(adj_list_3, "STOCHASTIC BLOCK MODEL (n=10000, k=10, p=0.5, q=0.05)"; true_communities=true_communities_4, sketch_size=100)
+    end
+
+    emph("\n" * "="^60)
+    emph("ALL TESTS COMPLETED")
+    emph("="^60)
 end
 
 end

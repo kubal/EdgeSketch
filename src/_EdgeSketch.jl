@@ -7,7 +7,6 @@ using Base.Threads
 
 export create_graph_sketch
 export EdgeSketch
-export create_graph_sketch_from_adjlist
 export is_initialized
 
 

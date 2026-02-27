@@ -1,18 +1,31 @@
+__precompile__(false)
+
 module _GraphModels
 
 using Random
 using Distributions
 using Base.Threads
 
+# Graph generation
 export generate_stochastic_block_graph
 export generate_erdos_renyi_graph
+
+# Graph modification
 export temporal_graph_step
 export merge_adjacency_lists!
-export nodes_real_degrees
 export permute_adj_list!
+
+# Graph properties
+export nodes_real_degrees
 export largest_component_size
 
 
+# =============================================================================
+# Graph generation
+# =============================================================================
+
+# Generate Stochastic Block Model graph with n nodes and nr_blocks communities
+# p = within-block edge prob., q = between-block edge prob. (typically p > q)
 function generate_stochastic_block_graph(
         n::Int, 
         nr_blocks::Int, 
@@ -25,13 +38,12 @@ function generate_stochastic_block_graph(
    
     adj_list = [Vector{Tuple{Int, Float64}}() for _ in 1:n]
     blocks = rand(1:nr_blocks, n)
-    rand_var = Exponential(1)  #<-- use weights
+    rand_var = Exponential(1)
 
     for y in 1:n
-         for x in (y + 1):n
-
+        for x in (y + 1):n
             if use_weights
-                weight = rand(rand_var)  #<-- use weights   
+                weight = rand(rand_var)
             else
                 weight = 1.0  
             end
@@ -60,6 +72,7 @@ function generate_stochastic_block_graph(
 end
 
 
+# Generate Erdos-Renyi random graph with n nodes and edge probability p
 function generate_erdos_renyi_graph(
         n::Int, 
         p::Float64,
@@ -68,14 +81,13 @@ function generate_erdos_renyi_graph(
     )
     
     adj_list = [Vector{Tuple{Int, Float64}}() for _ in 1:n]
-    
-    rand_var = Exponential(1)  #<-- use weights
+    rand_var = Exponential(1)
 
     for y in 1:n
         for x in (y + 1):n
             if rand() < p
                 if weights
-                    weight = rand(rand_var)   #<-- use weights
+                    weight = rand(rand_var)
                 else
                     weight = 1.0  
                 end         
@@ -93,6 +105,11 @@ function generate_erdos_renyi_graph(
 end
 
 
+# =============================================================================
+# Helper function (internal)
+# =============================================================================
+
+# Remove nodes with no edges and remap indices
 function remove_isolated_nodes(
         adj_list::Vector{Vector{Tuple{Int, Float64}}}, 
         blocks::Union{Nothing, Vector{Int}} = nothing
@@ -115,12 +132,18 @@ function remove_isolated_nodes(
 end
 
 
+# =============================================================================
+# Graph modification
+# =============================================================================
+
+# Extract a random batch of edges for streaming/temporal simulation
+# Returns (remaining_edges, extracted_edges)
 function temporal_graph_step(
-    left_edges::Vector{Vector{Tuple{Int, Float64}}}, 
-    step_size::Int
-)
+        left_edges::Vector{Vector{Tuple{Int, Float64}}}, 
+        step_size::Int
+    )
   
-    total_edges = sum(length(neighbors) for neighbors in left_edges)/2   
+    total_edges = sum(length(neighbors) for neighbors in left_edges) / 2   
     step_size = min(step_size, total_edges)
 
     step_edges = [Vector{Tuple{Int, Float64}}() for _ in 1:length(left_edges)]
@@ -130,7 +153,7 @@ function temporal_graph_step(
         edge = popfirst!(left_edges[u])
         push!(step_edges[u], edge)
         v = edge[1] 
-        push!(step_edges[v], (u,edge[2])) 
+        push!(step_edges[v], (u, edge[2])) 
         idx = findfirst(e -> e[1] == u, left_edges[v])
         if idx !== nothing
             deleteat!(left_edges[v], idx)
@@ -141,6 +164,7 @@ function temporal_graph_step(
 end
 
 
+# Merge adj_list2 into adj_list1, tracking seen edges to avoid duplicates
 function merge_adjacency_lists!(
         adj_list1::Vector{Vector{Tuple{Int64, Float64}}},
         adj_list2::Vector{Vector{Tuple{Int64, Float64}}},
@@ -157,32 +181,31 @@ function merge_adjacency_lists!(
             end
         end
     end
-    
 end
 
 
-function nodes_real_degrees(
-        adj_list::Vector{Vector{Tuple{Int64, Float64}}}
-    )
-    
-    real_degrees = [isempty(neighbors) ? 0.0 : sum(weight for (_, weight) in neighbors) for neighbors in adj_list]
-
-    return real_degrees
-end
-
-
-function permute_adj_list!(
-        adj_list::Vector{Vector{Tuple{Int64, Float64}}}
-    )
-    
+# Randomly shuffle edges in each node's adjacency list
+function permute_adj_list!(adj_list::Vector{Vector{Tuple{Int64, Float64}}})
     for i in 1:length(adj_list)
         shuffle!(adj_list[i])
     end
 end
 
 
+# =============================================================================
+# Graph properties
+# =============================================================================
+
+# Compute weighted degree for each node (sum of edge weights)
+function nodes_real_degrees(adj_list::Vector{Vector{Tuple{Int64, Float64}}})
+    return [isempty(neighbors) ? 0.0 : sum(weight for (_, weight) in neighbors) for neighbors in adj_list]
+end
+
+
+# Return size of the largest connected component
 function largest_component_size(components::Vector{Set{Int}})
     return isempty(components) ? 0 : maximum(length(comp) for comp in components)
 end
+
 
 end

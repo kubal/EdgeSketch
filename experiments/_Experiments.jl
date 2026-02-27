@@ -14,7 +14,6 @@ using _GraphModels
 using _EdgeSketch
 using _NodeSketch
 using _SketchOperations
-using _kEmbeddings
 using _GraphReconstruction
 using _GraphModularity
 using _SketchModularity
@@ -77,7 +76,8 @@ function experiment_Louvain_estimator()
 
 
     # --- Plot setup ---
-    pgfplotsx()
+    # pgfplotsx()
+    gr()
     default(
         fontfamily = "Computer Modern",
         framestyle = :box,
@@ -228,7 +228,8 @@ function experiment_Louvain_varying_m()
 
 
     # --- Plot results: modularity vs sketch size ---
-    pgfplotsx()
+    # pgfplotsx()
+    gr()
     default(
         fontfamily = "Computer Modern",
         framestyle = :box,
@@ -310,9 +311,8 @@ end
 # --- Tests Louvain on dynamically growing graphs using streaming edge batches
 # --- (Figure 1d in the paper) 
 function experiment_Louvain_dynamic_graphs()
-    Random.seed!(1234)
+    Random.seed!(999)
     
-
     # --- Graph generation (SBM) ---
     nr_nodes = 10000
     nr_blocks = 10
@@ -390,7 +390,8 @@ function experiment_Louvain_dynamic_graphs()
     end
 
     # --- Plot setup ---
-    pgfplotsx()
+    # pgfplotsx()
+    gr()
     default(
         fontfamily = "Computer Modern",
         framestyle = :box,
@@ -483,8 +484,8 @@ function experiment_graph_reconstruction()
 
     # --- Evaluation parameters ---
     top_edges_percent = 1       # fraction of edges to analyze
-    num_steps = 100             # number of evaluation steps along top edges
-    k, alpha = 4, 0.2           # embedding/similarity parameters
+    num_steps = 100             # number of points on precision plot (higher = smoother but slower)
+    k, alpha = 4, 0.2           # embedding parameters
 
     edge_sketch_with_sample_size = 100
     edge_sketch_no_sample_size  = edge_sketch_with_sample_size * 3
@@ -513,10 +514,10 @@ function experiment_graph_reconstruction()
 
     # --- Memory usage ---
     edge_sketch_with_sample_mb = Base.summarysize(edge_sketch_with_sample) / (1024 * 1024)
-    edge_sketch_no_sample_mb   = Base.summarysize(edge_sketch_no_sample) / (1024 * 1024)
+    edge_sketch_no_sample_mb   = Base.summarysize(edge_sketch_no_sample) / (1024 * 1024) / 3  # only embedding used
     node_sketch_mb             = Base.summarysize(node_sketch) / (1024 * 1024)
     println("EdgeSketch WITH sample size: $(round(edge_sketch_with_sample_mb, digits=2)) MB")
-    println("EdgeSketch WITHOUT sample size: $(round(edge_sketch_no_sample_mb, digits=2)) MB")
+    println("EdgeSketch WITHOUT sample size: $(round(edge_sketch_no_sample_mb, digits=2)) MB (embedding only)")
     println("NodeSketch size: $(round(node_sketch_mb, digits=2)) MB")
 
 
@@ -531,7 +532,9 @@ function experiment_graph_reconstruction()
     edge_sketch_no_sample_precision   = Vector{Float64}(undef, steps)
 
     for (step, top_edges) in enumerate(top_range)
-        println("Step $step/$steps, top_edges = $top_edges")
+        if step % 10 == 0
+            println("Step $step/$steps, top_edges = $top_edges")
+        end
 
         node_sketch_precision[step], _, _            = evaluate_prediction(node_predicted_edges[1:min(end, top_edges)], adj_list)
         edge_sketch_with_sample_precision[step], _, _ = evaluate_prediction(edge_sketch_with_sample_pred[1:min(end, top_edges)], adj_list)
@@ -544,11 +547,12 @@ function experiment_graph_reconstruction()
     pct       = 0:25:100
     positions = round.(Int, steps .* (pct ./ 100))
     positions[1] = 1
-    labels    = [string(Int(p * top_edges_percent), "\\%") for p in pct]
+    labels    = [string(Int(p * top_edges_percent), "%") for p in pct]
 
 
     # --- Plot setup ---
-    pgfplotsx()
+    # pgfplotsx()
+    gr()
     default(
         fontfamily     = "Computer Modern",
         framestyle     = :box,
@@ -563,7 +567,7 @@ function experiment_graph_reconstruction()
 
     plt = plot(
         size      = (1000, 600),
-        xlabel    = "Top edges (\\% of total)",
+        xlabel    = "Top edges (% of total)",
         ylabel    = "Precision",
         xticks    = (positions, labels),
         xlims     = (1, steps),
@@ -576,7 +580,7 @@ function experiment_graph_reconstruction()
 
     # --- Plot series ---
     plot!(plt, x_values, edge_sketch_with_sample_precision,
-        label        = "EdgeSketch\\ \\ (m=$(edge_sketch_with_sample_size))",
+        label        = "EdgeSketch (m=$(edge_sketch_with_sample_size))",
         color        = RGB(0.0, 0.4, 0.7),
         lw           = 3
     )
@@ -589,7 +593,7 @@ function experiment_graph_reconstruction()
     )
 
     plot!(plt, x_values, node_sketch_precision,
-        label        = "NodeSketch\\ \\ (m=$(node_sketch_size))",
+        label        = "NodeSketch (m=$(node_sketch_size))",
         color        = :black,
         lw           = 3,
         dash_pattern = "on 15pt off 15pt"
