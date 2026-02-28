@@ -523,7 +523,7 @@ function epinions_louvain_streaming(;
     info("Louvain: $(round(total_louvain_time, digits=2)) sec, estimated modularity: $(round(best_modularity, digits=4)), clusters: $(length(best_communities))")
     info("Total time: $(round(elapsed_sketch + total_louvain_time, digits=1))s")
     
-    return graph_sketch, best_communities, best_modularity
+    # return graph_sketch, best_communities, best_modularity
 end
 
 
