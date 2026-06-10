@@ -35,7 +35,7 @@ end
 
 
 # ensure that packages are installed
-packages = ["Random", "Revise", "Distributions", "StatsBase", "Printf", "Plots", "PGFPlotsX", "Dates", "StatsPlots", "LaTeXStrings", "SparseArrays"]
+packages = ["Random", "Revise", "Distributions", "StatsBase", "Printf", "Plots", "PGFPlotsX", "Dates", "StatsPlots", "LaTeXStrings", "SparseArrays", "Statistics", "LinearAlgebra", "HDF5", "HNSW"]
 
 for pkg in packages
     ensure_package_installed(pkg)
@@ -61,6 +61,9 @@ using _SketchModularity
 using _Tests
 using _Experiments
 using _Epinions
+using _Gplus
+using _Stocks
+using _Brain1M
 
 
 
